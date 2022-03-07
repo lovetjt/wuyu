@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推箱子</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #wrap {
+            position: relative;
+            width: 560px;
+            height: 560px;
+            background-image: url(./img/block.gif);
+            margin: 5px auto;
+        }
+
+        #wrap div {
+            position: absolute;
+        }
+
+        #btns {
+            margin: 20px auto 0;
+            display: flex;
+            justify-content: space-between;
+            width: 170px;
+            height: 30px;
+        }
+
+        .btn {
+            width: 53px;
+            background-color: rgb(237, 253, 165);
+            border: none;
+            border-radius: 10px;
+        }
+
+        .wall {
+            width: 35px;
+            height: 35px;
+        }
+
+        .wall img {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            top: 50%;
+            left: 50%;
+            margin-top: -50%;
+            margin-left: -50%;
+        }
+
+        .box {
+            width: 35px;
+            height: 35px;
+        }
+
+        .box img {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            top: 50%;
+            left: 50%;
+            margin-top: -50%;
+            margin-left: -50%;
+        }
+
+        .ball {
+            width: 35px;
+            height: 35px;
+        }
+
+        .ball img {
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            top: 50%;
+            left: 50%;
+            margin-top: -44%;
+            margin-left: -37%;
+        }
+
+        .monkey {
+            width: 50px;
+            height: 50px;
+        }
+
+        .monkey img {
+            position: absolute;
+            width: 50px;
+            height: 55px;
+            top: 50%;
+            left: 50%;
+            margin-top: -90%;
+            margin-left: -58%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="btns">
+        <button class="btn">上一步</button>
+        <button class="btn">上一关</button>
+        <button class="btn">下一关</button>
+    </div>
+    <div id="wrap"></div>
+</body>
+<script>
+    window.onload = function () {
+        game.start()
+    }
+    //使用面向对象的方式  this指向game
+    let game = {
+        wrap: document.getElementById("wrap"),
+        //启动游戏
+        start() {
+            this.createMap(this.level)
+            let btn = document.querySelectorAll(".btn")
+            btn[0].onclick = () => {
+                this.topStep()
+            }
+            btn[1].onclick = () => {
+                this.level--
+                if (this.level <= 1) {
+                    alert("现在是第一关")
+                    this.level = 1
+                }
+                this.createMap(this.level)
+            }
+            btn[2].onclick = () => {
+                this.level++
+                if (this.level > this.paintMap.length) {
+                    alert("现在是最后一关")
+                    this.level = 5
+                }
+                this.createMap(this.level)
+            }
+        },
+        level: 1, //用来标记第几关游戏 
+        //修改地图的大小
+        size: {
+            x: 16,
+            y: 16
+        },
+        //创造地图
+        createMap(lv) {
+            //刷新地图,清空上一关地图
+            this.wrap.innerHTML = ""
+            this.stepup.monkey = []
+            this.stepup.box = []
+            this.stepupNum = 0
+            //修改地图大小
+            this.wrap.style.cssText = `width:${this.size.x * 35}px;height:${this.size.y * 35}px`
+            let monkeyimg, oimg, odiv
+            for (let i = 0; i < this.size.x * this.size.y; i++) {
+                //console.log(i);
+
+                switch (this.paintMap[lv - 1][i]) {
+                    case 1: {
+                        commonStyle(this)
+                        odiv.className = "wall"
+                        oimg.src = './img/wall.png'
+                        break
+                    }
+                    case 2: {
+                        commonStyle(this)
+                        odiv.className = "box"
+                        oimg.src = './img/box.png'
+                        break
+                    }
+                    case 3: {
+                        commonStyle(this)
+                        odiv.className = "ball"
+                        oimg.src = './img/ball.png'
+                        break
+                    }
+                    case 4: {
+                        commonStyle(this)
+                        odiv.className = "monkey"
+                        oimg.src = './img/down.png'
+                        monkeyimg = oimg
+                        break
+                    }
+                }
+                //createMap的公共部分
+                function commonStyle(thi) {
+                    odiv = document.createElement("div")
+                    oimg = document.createElement("img")
+                    var x = (i) % thi.size.x
+                    var y = parseInt((i) / thi.size.y)
+                    odiv.x = x
+                    odiv.y = y
+                    odiv.style.top = `${y * 35}px`
+                    odiv.style.left = `${x * 35}px`
+                    odiv.appendChild(oimg)
+                    this.wrap.appendChild(odiv)
+                }
+            }
+            this.controlMoney(monkeyimg)
+        },
+        //返回上一步 stepup,创造对象
+        stepup: {
+            mokey: [],
+            box: []
+        },
+        //标记步数
+        stepupNum: 0,
+        //控制猴子的移动
+        controlMoney(om) { //om 传入的是猴子的图片
+            let omParent = om.parentNode //获取om的父节点--即猴子的div
+            document.onkeydown = (ev) => {
+                ev = ev || window.event
+                this.stepup.mokey[this.stepupNum] = {}
+                this.stepup.mokey[this.stepupNum].src = om.src
+                switch (ev.keyCode) {
+                    case 65: { //左 a
+                        this.move({ x: -1, y: 0 }, omParent)
+                        om.src = "./img/left.png"
+                        break
+                    }
+                    case 87: { //上 w
+                        this.move({ x: 0, y: -1 }, omParent)
+                        om.src = "./img/up.png"
+                        break
+                    }
+                    case 68: {//右 d
+                        this.move({ x: 1, y: 0 }, omParent)
+                        om.src = "./img/right.png"
+                        break
+                    }
+                    case 83: {//下 s
+                        this.move({ x: 0, y: 1 }, omParent)
+                        om.src = "./img/down.png"
+                        break
+                    }
+                }
+            }
+        },
+        //猴子的移动封装
+        move(obj, omParent) {
+            var box = document.getElementsByClassName("box")
+            // console.log(this.paintMap[this.level - 1][omParent.x + obj.x + (omParent.y + obj.y) * this.size.y]);
+            if (this.paintMap[this.level - 1][omParent.x + obj.x + (omParent.y + obj.y) * this.size.y] !== 1) {
+                //记录猴子的移动轨迹
+                this.stepup.mokey[this.stepupNum].x = omParent.x
+                this.stepup.mokey[this.stepupNum].y = omParent.y
+                //猴子移动了
+                this.moveDiv(obj, omParent)
+                console.log(" this.stepupNum", this.stepupNum);
+                this.stepupNum++ //猴子没移动一次,步数就加一
+                for (let i = 0; i < box.length; i++) {
+                    if (omParent.x == box[i].x && omParent.y == box[i].y) {
+                        if (this.paintMap[this.level - 1][box[i].x + obj.x + (box[i].y + obj.y) * this.size.y] !== 1) {
+                            // this.moveDiv(obj, box[i])
+                            if (this.pengbox(obj, box[i])) {
+                                this.stepup.box[this.stepupNum - 1] = {}
+                                this.stepup.box[this.stepupNum - 1].x = box[i].x
+                                this.stepup.box[this.stepupNum - 1].y = box[i].y
+                                this.stepup.box[this.stepupNum - 1].index = i
+                                this.moveDiv(obj, box[i])
+                            } else {
+                                obj.x = -obj.x
+                                obj.y = -obj.y
+                                this.moveDiv(obj, omParent)
+                                this.stepup.mokey.pop()  //删除数组的最后一个元素
+                                this.stepupNum--
+                            }
+                        } else {
+                            //如果箱子碰到了墙,猴子往前走一步,就会退一步,造成在原地不能向前的现象
+                            obj.x = -obj.x
+                            obj.y = -obj.y
+                            this.moveDiv(obj, omParent)
+                            this.stepup.mokey.pop()  //删除数组的最后一个元素
+                            this.stepupNum--
+                        }
+                    }
+                }
+            }
+            this.gameThrough()
+
+        },
+        //盒子的移动封装
+        moveDiv(obj, omParent) {
+            omParent.x += obj.x
+            omParent.y += obj.y
+            omParent.style.left = omParent.x * 35 + "px"
+            omParent.style.top = omParent.y * 35 + "px"
+            omParent.style.zIndex = omParent.y
+        },
+        //检测箱子之间是否会发生碰撞
+        pengbox(boxI, obj) {
+            var obox = document.getElementsByClassName("box")
+            // console.log("boxI.x + obj.x", boxI.x + obj.x);
+            for (var i = 0; i < obox.length; i++) {
+                if (boxI.x + obj.x === obox[i].x && boxI.y + obj.y === obox[i].y) {
+                    console.log("obox[i].x", obox[i].x);
+                    return false
+                }
+            }
+            return true
+        },
+        //游戏通关检测
+        gameThrough() {
+            var gbox = document.getElementsByClassName("box")
+            var gball = document.getElementsByClassName("ball")
+            let nextnum = 0 //用来检测有几个箱子和球重叠了
+            for (let i = 0; i < gbox.length; i++) {
+                for (let j = 0; j < gball.length; j++) {
+                    //如果4个箱子和4个球的坐标相等,游戏通关
+                    if (gbox[i].x == gball[j].x && gbox[i].y == gball[j].y) {
+                        nextnum++
+                        //  console.log(nextnum);
+                    }
+                }
+            }
+            if (nextnum === gball.length) {
+                //console.log("游戏通关");
+                this.level++
+                nextimmer = setTimeout(() => {
+                    this.createMap(this.level) //进入下一关,重新刷新地图
+                }, 500)
+
+            }
+        },
+        //stepup 函数
+        topStep() {
+            var that = game
+            var monkeybox = document.querySelector(".monkey")
+            var obox = document.querySelectorAll(".box")
+            var boxIdx
+            if (that.stepupNum !== 0) {
+                console.log(that);
+                monkeybox.x = that.stepup.mokey[that.stepupNum - 1].x
+                monkeybox.y = that.stepup.mokey[that.stepupNum - 1].y
+                monkeybox.style.left = monkeybox.x * 35 + "px"
+                monkeybox.style.top = monkeybox.y * 35 + "px"
+                monkeybox.children[0].src = that.stepup.mokey[that.stepupNum - 1].src
+                if (that.stepup.box[that.stepupNum - 1]) {
+                    boxIdx = obox[that.stepup.box[that.stepupNum-1].index]
+                    boxIdx.x = that.stepup.box[that.stepupNum - 1].x
+                    boxIdx.y = that.stepup.box[that.stepupNum - 1].y
+                    boxIdx.style.left = boxIdx.x * 35 + "px"
+                    boxIdx.style.top = boxIdx.y * 35 + "px"
+                }
+                that.stepupNum--
+            } else {
+                console.log("现在是第一步");
+            }
+
+
+        },
+        //绘制地图的图形
+        paintMap: [
+            /*
+            0:绿色地面，
+            1：树，
+            2：箱子，
+            3：球，
+            4: 猴子
+            */
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 1, 3, 1, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 1, 1, 2, 0, 2, 3, 1, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 3, 0, 2, 4, 1, 1, 1, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 1, 1, 1, 2, 1, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 1, 3, 1, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ],
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 4, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 0, 2, 2, 1, 0, 1, 1, 1, 0, 0, 0,
+                0, 0, 0, 0, 1, 0, 2, 0, 1, 0, 1, 3, 1, 0, 0, 0,
+                0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 3, 1, 0, 0, 0,
+                0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 3, 1, 0, 0, 0,
+                0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+                0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+                0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ],
+            //2
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+                0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 1, 0, 0, 0,
+                0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 3, 3, 1, 0, 0, 0,
+                0, 0, 0, 0, 1, 0, 0, 2, 0, 1, 4, 3, 1, 0, 0, 0,
+                0, 0, 0, 1, 1, 0, 1, 1, 2, 0, 1, 1, 0, 0, 0,
+                0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 2, 0, 1, 0, 0, 0,
+                0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+                0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ],
+            //4
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 4, 1, 1, 0, 0, 0,
+                0, 0, 0, 0, 1, 3, 3, 3, 3, 1, 2, 0, 1, 1, 0, 0,
+                0, 0, 0, 0, 1, 3, 3, 3, 3, 1, 0, 2, 0, 1, 0, 0,
+                0, 0, 0, 0, 1, 3, 3, 3, 3, 0, 2, 0, 0, 1, 0, 0,
+                0, 0, 0, 0, 1, 0, 3, 3, 3, 1, 0, 0, 0, 1, 0, 0,
+                1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0,
+                1, 0, 2, 0, 2, 0, 0, 0, 2, 0, 0, 1, 0, 0, 1, 0,
+                1, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2, 0, 2, 0, 1, 0,
+                1, 1, 1, 0, 2, 0, 2, 0, 2, 0, 0, 1, 1, 1, 1, 0,
+                0, 0, 1, 1, 0, 0, 0, 2, 0, 2, 0, 1, 0, 0, 0, 0,
+                0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+                0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ],
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+                0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+                0, 1, 0, 0, 0, 2, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0,
+                0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0,
+                0, 1, 0, 1, 0, 3, 0, 3, 1, 2, 0, 1, 0, 0, 0, 0,
+                0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,
+                0, 1, 0, 2, 1, 3, 0, 3, 0, 1, 0, 1, 0, 0, 0, 0,
+                0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0,
+                0, 0, 1, 0, 1, 1, 1, 2, 0, 0, 0, 0, 4, 1, 0, 0,
+                0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0,
+                0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ]
+        ]
+
+
+    }
+</script>
+
+</html>
